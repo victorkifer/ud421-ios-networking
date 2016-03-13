@@ -21,6 +21,6 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // TODO: Add all the networking code here!
+        imageView.loadUrl("http://www.menucool.com/slider/jsImgSlider/images/image-slider-2.jpg")
     }
 }

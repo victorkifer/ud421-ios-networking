@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		57F39F6A1C9614FC004D0930 /* UIImageView+Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F39F691C9614FC004D0930 /* UIImageView+Network.swift */; };
 		A9A3A2221BEBD094009BE8E1 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A3A2211BEBD094009BE8E1 /* Constants.swift */; };
 		A9DB69411BE963C9005E6ADD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9DB69401BE963C9005E6ADD /* AppDelegate.swift */; };
 		A9DB69431BE963C9005E6ADD /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9DB69421BE963C9005E6ADD /* ViewController.swift */; };
@@ -17,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		57F39F691C9614FC004D0930 /* UIImageView+Network.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIImageView+Network.swift"; sourceTree = "<group>"; };
 		A9A3A2211BEBD094009BE8E1 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		A9DB693D1BE963C9005E6ADD /* ImageRequest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImageRequest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9DB69401BE963C9005E6ADD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -64,6 +66,7 @@
 				A9DB69541BE9696F005E6ADD /* GCDBlackBox.swift */,
 				A9DB69521BE968EA005E6ADD /* Assets */,
 				A9DB69531BE968F4005E6ADD /* Supporting Files */,
+				57F39F691C9614FC004D0930 /* UIImageView+Network.swift */,
 			);
 			path = ImageRequest;
 			sourceTree = "<group>";
@@ -158,6 +161,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A9DB69431BE963C9005E6ADD /* ViewController.swift in Sources */,
+				57F39F6A1C9614FC004D0930 /* UIImageView+Network.swift in Sources */,
 				A9DB69411BE963C9005E6ADD /* AppDelegate.swift in Sources */,
 				A9DB69551BE9696F005E6ADD /* GCDBlackBox.swift in Sources */,
 				A9A3A2221BEBD094009BE8E1 /* Constants.swift in Sources */,
