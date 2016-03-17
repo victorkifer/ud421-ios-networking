@@ -53,8 +53,15 @@ class ViewController: UIViewController {
         
         if !phraseTextField.text!.isEmpty {
             photoTitleLabel.text = "Searching..."
-            // TODO: Set necessary parameters!
-            let methodParameters: [String: String!] = [:]
+            let methodParameters: [String: String!] = [
+                Constants.FlickrParameterKeys.APIKey: Constants.FlickrParameterValues.APIKey,
+                Constants.FlickrParameterKeys.SafeSearch: Constants.FlickrParameterValues.UseSafeSearch,
+                Constants.FlickrParameterKeys.Text: phraseTextField.text!,
+                Constants.FlickrParameterKeys.Extras: Constants.FlickrParameterValues.MediumURL,
+                Constants.FlickrParameterKeys.Method: Constants.FlickrParameterValues.SearchMethod,
+                Constants.FlickrParameterKeys.Format: Constants.FlickrParameterValues.ResponseFormat,
+                Constants.FlickrParameterKeys.NoJSONCallback: Constants.FlickrParameterValues.DisableJSONCallback
+            ]
             displayImageFromFlickrBySearch(methodParameters)
         } else {
             setUIEnabled(true)
@@ -69,8 +76,15 @@ class ViewController: UIViewController {
         
         if isTextFieldValid(latitudeTextField, forRange: Constants.Flickr.SearchLatRange) && isTextFieldValid(longitudeTextField, forRange: Constants.Flickr.SearchLonRange) {
             photoTitleLabel.text = "Searching..."
-            // TODO: Set necessary parameters!
-            let methodParameters: [String: String!] = [:]
+            let methodParameters: [String: String!] = [
+                Constants.FlickrParameterKeys.APIKey: Constants.FlickrParameterValues.APIKey,
+                Constants.FlickrParameterKeys.SafeSearch: Constants.FlickrParameterValues.UseSafeSearch,
+                Constants.FlickrParameterKeys.BoundingBox: bboxString(),
+                Constants.FlickrParameterKeys.Extras: Constants.FlickrParameterValues.MediumURL,
+                Constants.FlickrParameterKeys.Method: Constants.FlickrParameterValues.SearchMethod,
+                Constants.FlickrParameterKeys.Format: Constants.FlickrParameterValues.ResponseFormat,
+                Constants.FlickrParameterKeys.NoJSONCallback: Constants.FlickrParameterValues.DisableJSONCallback
+            ]
             displayImageFromFlickrBySearch(methodParameters)
         }
         else {
@@ -79,13 +93,79 @@ class ViewController: UIViewController {
         }
     }
     
+    private func bboxString() -> String {
+        if let lat = Double(latitudeTextField.text!) where !latitudeTextField.text!.isEmpty,
+            let long = Double(longitudeTextField.text!) where !longitudeTextField.text!.isEmpty {
+                let minx = max(Constants.Flickr.SearchLonRange.0, long - Constants.Flickr.SearchBBoxHalfWidth);
+                let miny = max(Constants.Flickr.SearchLatRange.0, lat - Constants.Flickr.SearchBBoxHalfHeight);
+                let maxx = min(Constants.Flickr.SearchLonRange.1, long + Constants.Flickr.SearchBBoxHalfWidth);
+                let maxy = min(Constants.Flickr.SearchLatRange.1, lat + Constants.Flickr.SearchBBoxHalfHeight);
+                
+            return "\(minx),\(miny),\(maxx),\(maxy)"
+        }
+        return "0,0,0,0"
+    }
+    
     // MARK: Flickr API
     
     private func displayImageFromFlickrBySearch(methodParameters: [String:AnyObject]) {
         
         print(flickrURLFromParameters(methodParameters))
         
-        // TODO: Make request to Flickr!
+        let request = NSURLRequest(URL: flickrURLFromParameters(methodParameters));
+        let task = NSURLSession.sharedSession().dataTaskWithRequest(request) {
+            (data, response, error) in
+            
+            func displayError(error: String) {
+                print(error)
+                self.setUIEnabled(true)
+                self.photoTitleLabel.text = "No photo returned. Try again"
+                self.photoImageView.image = nil
+            }
+            
+            if error != nil {
+                displayError("\(error)")
+                return
+            }
+            
+            guard let data = data else {
+                displayError("No data received")
+                return
+            }
+            
+            
+            let parsedData: AnyObject!
+            do {
+                parsedData = try NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments)
+            } catch {
+                displayError("Could not parse data \(data)")
+                return
+            }
+            
+            guard let photosDict = parsedData[Constants.FlickrResponseKeys.Photos] as? [String:AnyObject] else {
+                displayError("Cannot find \(Constants.FlickrResponseKeys.Photos)")
+                return
+            }
+            
+            let photoArr = photosDict[Constants.FlickrResponseKeys.Photo] as? [[String:AnyObject]]
+            
+            let photoIndex = Int(arc4random_uniform(UInt32(photoArr!.count)))
+            let photo = photoArr![photoIndex] as [String:AnyObject]
+            
+            guard let imageUrlString = photo[Constants.FlickrResponseKeys.MediumURL] as? String,
+                let photoTitle = photo[Constants.FlickrResponseKeys.Title] as? String else {
+                    displayError("Cannot find image url or title")
+                    return
+            }
+            
+            self.photoImageView.loadUrl(imageUrlString)
+            performUIUpdatesOnMain {
+                self.photoTitleLabel.text = photoTitle
+                self.setUIEnabled(true)
+            }
+            
+        }
+        task.resume()
     }
     
     // MARK: Helper for Creating a URL from Parameters
