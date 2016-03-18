@@ -47,7 +47,7 @@ class ViewController: UIViewController {
     // MARK: Search Actions
     
     @IBAction func searchByPhrase(sender: AnyObject) {
-
+        
         userDidTapView(self)
         setUIEnabled(false)
         
@@ -62,7 +62,7 @@ class ViewController: UIViewController {
                 Constants.FlickrParameterKeys.Format: Constants.FlickrParameterValues.ResponseFormat,
                 Constants.FlickrParameterKeys.NoJSONCallback: Constants.FlickrParameterValues.DisableJSONCallback
             ]
-            displayImageFromFlickrBySearch(methodParameters)
+            displayImageFromFlickrBySearch(methodParameters, withPage: nil)
         } else {
             setUIEnabled(true)
             photoTitleLabel.text = "Phrase Empty."
@@ -70,7 +70,7 @@ class ViewController: UIViewController {
     }
     
     @IBAction func searchByLatLon(sender: AnyObject) {
-
+        
         userDidTapView(self)
         setUIEnabled(false)
         
@@ -85,7 +85,7 @@ class ViewController: UIViewController {
                 Constants.FlickrParameterKeys.Format: Constants.FlickrParameterValues.ResponseFormat,
                 Constants.FlickrParameterKeys.NoJSONCallback: Constants.FlickrParameterValues.DisableJSONCallback
             ]
-            displayImageFromFlickrBySearch(methodParameters)
+            displayImageFromFlickrBySearch(methodParameters, withPage: nil)
         }
         else {
             setUIEnabled(true)
@@ -101,26 +101,33 @@ class ViewController: UIViewController {
                 let maxx = min(Constants.Flickr.SearchLonRange.1, long + Constants.Flickr.SearchBBoxHalfWidth);
                 let maxy = min(Constants.Flickr.SearchLatRange.1, lat + Constants.Flickr.SearchBBoxHalfHeight);
                 
-            return "\(minx),\(miny),\(maxx),\(maxy)"
+                return "\(minx),\(miny),\(maxx),\(maxy)"
         }
         return "0,0,0,0"
     }
     
     // MARK: Flickr API
     
-    private func displayImageFromFlickrBySearch(methodParameters: [String:AnyObject]) {
+    private func displayImageFromFlickrBySearch(methodParameters: [String:AnyObject], withPage: Int32?) {
         
         print(flickrURLFromParameters(methodParameters))
         
-        let request = NSURLRequest(URL: flickrURLFromParameters(methodParameters));
+        var methodParams = methodParameters;
+        if withPage != nil {
+            methodParams.updateValue("\(withPage)", forKey: Constants.FlickrParameterKeys.Page)
+        }
+        
+        let request = NSURLRequest(URL: self.flickrURLFromParameters(methodParams));
         let task = NSURLSession.sharedSession().dataTaskWithRequest(request) {
             (data, response, error) in
             
             func displayError(error: String) {
                 print(error)
-                self.setUIEnabled(true)
-                self.photoTitleLabel.text = "No photo returned. Try again"
-                self.photoImageView.image = nil
+                performUIUpdatesOnMain {
+                    self.setUIEnabled(true)
+                    self.photoTitleLabel.text = "No photo returned. Try again"
+                    self.photoImageView.image = nil
+                }
             }
             
             if error != nil {
@@ -144,6 +151,20 @@ class ViewController: UIViewController {
             
             guard let photosDict = parsedData[Constants.FlickrResponseKeys.Photos] as? [String:AnyObject] else {
                 displayError("Cannot find \(Constants.FlickrResponseKeys.Photos)")
+                return
+            }
+            
+            if withPage == nil {
+                guard let total = photosDict[Constants.FlickrResponseKeys.Pages] as? Int else {
+                    displayError("Cannot find \(Constants.FlickrResponseKeys.Pages)")
+                    return
+                }
+                
+                let maxPages = min(total, 40)
+                let page = Int32(arc4random_uniform(UInt32(maxPages))) + 1
+                
+                self.displayImageFromFlickrBySearch(methodParameters, withPage: page)
+                
                 return
             }
             
