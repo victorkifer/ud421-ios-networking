@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Alamofire
 
 // MARK: - MovieDetailViewController: UIViewController
 
@@ -172,22 +173,62 @@ class MovieDetailViewController: UIViewController {
     
     @IBAction func toggleFavorite(sender: AnyObject) {
         
-        // let shouldFavorite = !isFavorite
+        let shouldFavorite = !isFavorite
         
-        /* TASK: Add movie as favorite, then update favorite buttons */
-        /* 1. Set the parameters */
-        /* 2/3. Build the URL, Configure the request */
-        /* 4. Make the request */
-        /* 5. Parse the data */
-        /* 6. Use the data! */
-        /* 7. Start the request */
+        let methodParameters = [
+            Constants.TMDBParameterKeys.ApiKey: Constants.TMDBParameterValues.ApiKey,
+            Constants.TMDBParameterKeys.SessionID: appDelegate.sessionID!
+        ];
         
-        /* If the favorite/unfavorite request completes, then use this code to update the UI...
+        let parameters : [ String: AnyObject ] = [
+            "media_type": "movie",
+            "media_id": movie!.id,
+            "favorite": shouldFavorite
+        ];
         
-        performUIUpdatesOnMain {
-            self.favoriteButton.tintColor = (shouldFavorite) ? nil : UIColor.blackColor()
+        Alamofire.request(.POST,
+            appDelegate.tmdbURLFromParameters(methodParameters, withPathExtension: "/account/\(appDelegate.userID)/favorite"),
+            parameters: parameters,
+            encoding: .JSON).responseJSON { response in
+                
+                func displayError(error: String) {
+                    print(error)
+                }
+                
+                if response.result.error != nil {
+                    displayError("\(response.result.error)");
+                    return;
+                }
+                
+                guard let JSON = response.result.value else {
+                    displayError("Cannot parse JSON data");
+                    return;
+                }
+                
+                if let statusCode = JSON[Constants.TMDBResponseKeys.StatusCode] as? Int {
+                    if shouldFavorite && (statusCode < 1 || statusCode > 12) {
+                            if let statusMessage = JSON[Constants.TMDBResponseKeys.StatusMessage] as? String {
+                                displayError(statusMessage)
+                            } else {
+                                displayError("Unknown error with code \(statusCode)")
+                            }
+                            return
+                    }
+                    
+                    if !shouldFavorite && statusCode != 13 {
+                        if let statusMessage = JSON[Constants.TMDBResponseKeys.StatusMessage] as? String {
+                            displayError(statusMessage)
+                        } else {
+                            displayError("Unknown error with code \(statusCode)")
+                        }
+                        return
+                    }
+                }
+                
+                self.isFavorite = shouldFavorite;
+                performUIUpdatesOnMain {
+                    self.favoriteButton.tintColor = (shouldFavorite) ? nil : UIColor.blackColor()
+                }
         }
-        
-        */
     }
 }

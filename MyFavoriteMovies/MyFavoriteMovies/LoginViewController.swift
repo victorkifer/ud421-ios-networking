@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Alamofire
 
 // MARK: - LoginViewController: UIViewController
 
@@ -56,19 +57,6 @@ class LoginViewController: UIViewController {
             debugTextLabel.text = "Username or Password Empty."
         } else {
             setUIEnabled(false)
-            
-            /*
-                Steps for Authentication...
-                https://www.themoviedb.org/documentation/api/sessions
-                
-                Step 1: Create a request token
-                Step 2: Ask the user for permission via the API ("login")
-                Step 3: Create a session ID
-                
-                Extra Steps...
-                Step 4: Get the user id ;)
-                Step 5: Go to the next view!            
-            */
             getRequestToken()
         }
     }
@@ -85,62 +73,191 @@ class LoginViewController: UIViewController {
     // MARK: TheMovieDB
     
     private func getRequestToken() {
-        
-        /* TASK: Get a request token, then store it (appDelegate.requestToken) and login with the token */
-        
-        /* 1. Set the parameters */
         let methodParameters = [
             Constants.TMDBParameterKeys.ApiKey: Constants.TMDBParameterValues.ApiKey
         ]
         
-        /* 2/3. Build the URL, Configure the request */
-        let request = NSURLRequest(URL: appDelegate.tmdbURLFromParameters(methodParameters, withPathExtension: "/authentication/token/new"))
-        
-        /* 4. Make the request */
-        let task = appDelegate.sharedSession.dataTaskWithRequest(request) { (data, response, error) in
+        Alamofire.request(.GET, appDelegate.tmdbURLFromParameters(methodParameters, withPathExtension: "/authentication/token/new")).responseJSON { response in
             
-            /* 5. Parse the data */
-            /* 6. Use the data! */
+            func displayError(error: String) {
+                print(error)
+                performUIUpdatesOnMain {
+                    self.setUIEnabled(true)
+                    self.debugTextLabel.text = "Request has failed"
+                }
+            }
+            
+            if response.result.error != nil {
+                displayError("\(response.result.error)")
+                return
+            }
+            
+            guard let JSON = response.result.value else {
+                displayError("Cannot parse JSON data")
+                return
+            }
+            
+            if let statusCode = JSON[Constants.TMDBResponseKeys.StatusCode] as? Int {
+                if statusCode != 0 {
+                    if let statusMessage = JSON[Constants.TMDBResponseKeys.StatusMessage] as? String {
+                        displayError(statusMessage)
+                    } else {
+                        displayError("Unknown error with code \(statusCode)")
+                    }
+                    return
+                }
+            }
+            
+            guard let requestToken = JSON[Constants.TMDBResponseKeys.RequestToken] as? String else {
+                displayError("Cannot find requestToken in \(JSON)")
+                return
+            }
+            
+            print("Got requestToken = \(requestToken)")
+            self.appDelegate.requestToken = requestToken
+            
+            self.loginWithToken(requestToken)
         }
-
-        /* 7. Start the request */
-        task.resume()
     }
     
     private func loginWithToken(requestToken: String) {
+        let methodParameters = [
+            Constants.TMDBParameterKeys.ApiKey: Constants.TMDBParameterValues.ApiKey,
+            Constants.TMDBParameterKeys.RequestToken: requestToken,
+            Constants.TMDBParameterKeys.Username: usernameTextField.text!,
+            Constants.TMDBParameterKeys.Password: passwordTextField.text!
+        ];
         
-        /* TASK: Login, then get a session id */
-        
-        /* 1. Set the parameters */
-        /* 2/3. Build the URL, Configure the request */
-        /* 4. Make the request */
-        /* 5. Parse the data */
-        /* 6. Use the data! */
-        /* 7. Start the request */
+        Alamofire.request(.GET, appDelegate.tmdbURLFromParameters(methodParameters, withPathExtension: "/authentication/token/validate_with_login")).responseJSON { response in
+            
+            func displayError(error: String) {
+                print(error)
+                performUIUpdatesOnMain {
+                    self.setUIEnabled(true)
+                    self.debugTextLabel.text = "Request has failed"
+                }
+            }
+            
+            if response.result.error != nil {
+                displayError("\(response.result.error)");
+                return;
+            }
+            
+            guard let JSON = response.result.value else {
+                displayError("Cannot parse JSON data");
+                return;
+            }
+            
+            if let statusCode = JSON[Constants.TMDBResponseKeys.StatusCode] as? Int {
+                if statusCode != 0 {
+                    if let statusMessage = JSON[Constants.TMDBResponseKeys.StatusMessage] as? String {
+                        displayError(statusMessage)
+                    } else {
+                        displayError("Unknown error with code \(statusCode)")
+                    }
+                    return
+                }
+            }
+            
+            self.getSessionID(self.appDelegate.requestToken!)
+        }
     }
     
     private func getSessionID(requestToken: String) {
+        let methodParameters = [
+            Constants.TMDBParameterKeys.ApiKey: Constants.TMDBParameterValues.ApiKey,
+            Constants.TMDBParameterKeys.RequestToken: requestToken        ];
         
-        /* TASK: Get a session ID, then store it (appDelegate.sessionID) and get the user's id */
-        
-        /* 1. Set the parameters */
-        /* 2/3. Build the URL, Configure the request */
-        /* 4. Make the request */
-        /* 5. Parse the data */
-        /* 6. Use the data! */
-        /* 7. Start the request */
+        Alamofire.request(.GET, appDelegate.tmdbURLFromParameters(methodParameters, withPathExtension: "/authentication/session/new")).responseJSON { response in
+            
+            func displayError(error: String) {
+                print(error)
+                performUIUpdatesOnMain {
+                    self.setUIEnabled(true)
+                    self.debugTextLabel.text = "Request has failed"
+                }
+            }
+            
+            if response.result.error != nil {
+                displayError("\(response.result.error)");
+                return;
+            }
+            
+            guard let JSON = response.result.value else {
+                displayError("Cannot parse JSON data");
+                return;
+            }
+            
+            if let statusCode = JSON[Constants.TMDBResponseKeys.StatusCode] as? Int {
+                if statusCode != 0 {
+                    if let statusMessage = JSON[Constants.TMDBResponseKeys.StatusMessage] as? String {
+                        displayError(statusMessage)
+                    } else {
+                        displayError("Unknown error with code \(statusCode)")
+                    }
+                    return
+                }
+            }
+            
+            guard let sessionID = JSON[Constants.TMDBResponseKeys.SessionID] as? String else {
+                displayError("Cannot find sessionID in \(JSON)");
+                return;
+            }
+            
+            print("Got sessionID = \(sessionID)")
+            self.appDelegate.sessionID = sessionID
+            
+            self.getUserID(sessionID)
+        }
     }
     
     private func getUserID(sessionID: String) {
+        let methodParameters = [
+            Constants.TMDBParameterKeys.ApiKey: Constants.TMDBParameterValues.ApiKey,
+            Constants.TMDBParameterKeys.SessionID: sessionID
+        ];
         
-        /* TASK: Get the user's ID, then store it (appDelegate.userID) for future use and go to next view! */
-        
-        /* 1. Set the parameters */
-        /* 2/3. Build the URL, Configure the request */
-        /* 4. Make the request */
-        /* 5. Parse the data */
-        /* 6. Use the data! */
-        /* 7. Start the request */
+        Alamofire.request(.GET, appDelegate.tmdbURLFromParameters(methodParameters, withPathExtension: "/account")).responseJSON { response in
+            
+            func displayError(error: String) {
+                print(error)
+                performUIUpdatesOnMain {
+                    self.setUIEnabled(true)
+                    self.debugTextLabel.text = "Request has failed"
+                }
+            }
+            
+            if response.result.error != nil {
+                displayError("\(response.result.error)");
+                return;
+            }
+            
+            guard let JSON = response.result.value else {
+                displayError("Cannot parse JSON data");
+                return;
+            }
+            
+            if let statusCode = JSON[Constants.TMDBResponseKeys.StatusCode] as? Int {
+                if statusCode != 0 {
+                    if let statusMessage = JSON[Constants.TMDBResponseKeys.StatusMessage] as? String {
+                        displayError(statusMessage)
+                    } else {
+                        displayError("Unknown error with code \(statusCode)")
+                    }
+                    return
+                }
+            }
+            
+            guard let userID = JSON[Constants.TMDBResponseKeys.UserID] as? Int else {
+                displayError("Cannot find userID in \(JSON)");
+                return;
+            }
+            
+            print("Got userID = \(userID)")
+            self.appDelegate.userID = userID
+            
+            self.completeLogin()
+        }
     }
 }
 
