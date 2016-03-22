@@ -73,17 +73,35 @@ extension TMDBClient {
     
     private func getRequestToken(completionHandlerForToken: (success: Bool, requestToken: String?, errorString: String?) -> Void) {
         
-        /* 1. Specify parameters, the API method, and the HTTP body (if POST) */
-        /* 2. Make the request */
-        /* 3. Send the desired value(s) to completion handler */
+        let parameters : [String: AnyObject] = [:];
         
-        /*
-        
-        taskForGETMethod(method, parameters: parameters) { (results, error) in
-        
-        }
-        
-        */
+        TMDBClient.sharedInstance().taskForGETMethod(TMDBClient.Methods.AuthenticationTokenNew, parameters: parameters) {
+            (result, error) in
+            
+            func sendError(error: String) {
+                completionHandlerForToken(success: false, requestToken: nil, errorString: error);
+                return
+            }
+            
+            if error != nil {
+                sendError("\(error)")
+                return
+            }
+            
+            /* GUARD: Did TheMovieDB return an error? */
+            if let _ = result[TMDBClient.JSONResponseKeys.StatusCode] as? Int {
+                sendError("TheMovieDB returned an error. See the '\(TMDBClient.JSONResponseKeys.StatusCode)' and '\(TMDBClient.JSONResponseKeys.StatusMessage)' in \(result)")
+                return
+            }
+            
+            /* GUARD: Is the "request_token" key in parsedResult? */
+            guard let requestToken = result[TMDBClient.JSONResponseKeys.RequestToken] as? String else {
+                sendError("Cannot find key '\(TMDBClient.JSONResponseKeys.RequestToken)' in \(result)")
+                return
+            }
+            
+            completionHandlerForToken(success: true, requestToken: requestToken, errorString: nil)
+        };
     }
     
     private func loginWithToken(requestToken: String?, hostViewController: UIViewController, completionHandlerForLogin: (success: Bool, errorString: String?) -> Void) {
@@ -105,32 +123,73 @@ extension TMDBClient {
     
     private func getSessionID(requestToken: String?, completionHandlerForSession: (success: Bool, sessionID: String?, errorString: String?) -> Void) {
         
-        /* 1. Specify parameters, the API method, and the HTTP body (if POST) */
-        /* 2. Make the request */
-        /* 3. Send the desired value(s) to completion handler */
+        let parameters : [ String: AnyObject ] = [
+            TMDBClient.ParameterKeys.RequestToken: requestToken!
+        ]
         
-        /*
-        
-        taskForGETMethod(method, parameters: parameters) { (results, error) in
-        
-        }
-        
-        */
+        TMDBClient.sharedInstance().taskForGETMethod(TMDBClient.Methods.AuthenticationSessionNew, parameters: parameters) {
+            (result, error) in
+            
+            func sendError(error: String) {
+                completionHandlerForSession(success: false, sessionID: nil, errorString: error);
+                return
+            }
+            
+            if error != nil {
+                sendError("\(error)")
+                return
+            }
+            
+            /* GUARD: Did TheMovieDB return an error? */
+            if let _ = result[TMDBClient.JSONResponseKeys.StatusCode] as? Int {
+                sendError("TheMovieDB returned an error. See the '\(TMDBClient.JSONResponseKeys.StatusCode)' and '\(TMDBClient.JSONResponseKeys.StatusMessage)' in \(result)")
+                return
+            }
+            
+            /* GUARD: Is the "sessionID" key in parsedResult? */
+            guard let sessionID = result[TMDBClient.JSONResponseKeys.SessionID] as? String else {
+                sendError("Cannot find key '\(TMDBClient.JSONResponseKeys.SessionID)' in \(result)")
+                return
+            }
+            
+            completionHandlerForSession(success: true, sessionID: sessionID, errorString: nil)
+        };
     }
     
     private func getUserID(completionHandlerForUserID: (success: Bool, userID: Int?, errorString: String?) -> Void) {
         
-        /* 1. Specify parameters, the API method, and the HTTP body (if POST) */
-        /* 2. Make the request */
-        /* 3. Send the desired value(s) to completion handler */
+        let parameters : [ String: AnyObject ] = [
+            TMDBClient.ParameterKeys.SessionID: TMDBClient.sharedInstance().sessionID!
+        ]
         
-        /*
         
-        taskForGETMethod(method, parameters: parameters) { (results, error) in
-        
-        }
-        
-        */
+        TMDBClient.sharedInstance().taskForGETMethod(TMDBClient.Methods.Account, parameters: parameters) {
+            (result, error) in
+            
+            func sendError(error: String) {
+                completionHandlerForUserID(success: false, userID: nil, errorString: error);
+                return
+            }
+            
+            if error != nil {
+                sendError("\(error)")
+                return
+            }
+            
+            /* GUARD: Did TheMovieDB return an error? */
+            if let _ = result[TMDBClient.JSONResponseKeys.StatusCode] as? Int {
+                sendError("TheMovieDB returned an error. See the '\(TMDBClient.JSONResponseKeys.StatusCode)' and '\(TMDBClient.JSONResponseKeys.StatusMessage)' in \(result)")
+                return
+            }
+            
+            /* GUARD: Is the "sessionID" key in parsedResult? */
+            guard let userID = result[TMDBClient.JSONResponseKeys.UserID] as? Int else {
+                sendError("Cannot find key '\(TMDBClient.JSONResponseKeys.UserID)' in \(result)")
+                return
+            }
+            
+            completionHandlerForUserID(success: true, userID: userID, errorString: nil)
+        };
     }
     
     // MARK: GET Convenience Methods
